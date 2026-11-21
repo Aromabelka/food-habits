@@ -80,7 +80,8 @@ function receipt_(status){return {status:status==='sent'?'confirmation_sent':'sa
 function escape_(text){return String(text).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function doGet(e){
   const p=e&&e.parameter||{};
-  if(p.action==='confirm'||p.action==='unsubscribe'){
+  if(p.action==='confirm')return updateSubscription_(p);
+  if(p.action==='unsubscribe'){
     const valid=/^[0-9a-f-]{36}$/i.test(p.id||'')&&p.token===sign_(p.action+':'+p.id);
     const title=p.action==='confirm'?'Подтвердить подписку':'Отписаться от писем';
     return HtmlService.createHtmlOutput(valid?'<html lang="ru"><meta name="viewport" content="width=device-width"><body style="font:18px sans-serif;padding:40px"><h1>'+title+'</h1><form method="post" target="_top" action="'+escape_(ScriptApp.getService().getUrl())+'">'+['action','id','token'].map(k=>'<input type="hidden" name="'+k+'" value="'+escape_(p[k])+'">').join('')+'<button style="padding:16px">'+title+'</button></form></body></html>':'Ссылка недействительна.');
@@ -91,8 +92,11 @@ function doGet(e){
   }
   return HtmlService.createHtmlOutputFromFile('Index').setTitle('С какой привычки начать?').addMetaTag('viewport','width=device-width, initial-scale=1');
 }
-function doPost(e){
-  const p=e&&e.parameter||{};
+function doPost(e){return updateSubscription_(e&&e.parameter||{});}
+function confirmationPage_(){
+  return HtmlService.createHtmlOutput('<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Спасибо, вы подписаны</title></head><body style="margin:0;background:#f6f8f4;color:#244e3d;font:18px/1.7 system-ui,sans-serif"><main style="max-width:600px;margin:12vh auto;padding:32px"><h1 style="font-size:36px;line-height:1.25">Спасибо, вы подписаны!</h1><p>Подписка на письма Елены Вилиткевич подтверждена.</p><p>Теперь вы будете получать советы по питанию и новости. Отписаться можно в любой момент.</p><a href="https://aromabelka.github.io/food-habits/" target="_top" style="color:inherit">Вернуться к анкете</a></main></body></html>');
+}
+function updateSubscription_(p){
   if(!['confirm','unsubscribe'].includes(p.action)||!/^[0-9a-f-]{36}$/i.test(p.id||'')||p.token!==sign_(p.action+':'+p.id))return HtmlService.createHtmlOutput('Ссылка недействительна.');
   const lock=LockService.getScriptLock();lock.waitLock(10000);
   try{
@@ -100,11 +104,13 @@ function doPost(e){
     const index=rows.findIndex(r=>r[0]===p.id);if(index<1)return HtmlService.createHtmlOutput('Заявка не найдена.');
     const row=rows[index];
     if(p.action==='confirm'){
+      if(row[4]==='confirmed')return confirmationPage_();
       if(row[4]==='unsubscribed'||Date.now()-Date.parse(row[1])>7*86400000)return HtmlService.createHtmlOutput('Ссылка истекла или заявка отменена. Оставьте новую заявку в анкете.');
       sheet.getRange(index+1,5).setValue('confirmed');sheet.getRange(index+1,8).setValue(new Date().toISOString());
     }else{
       rows.forEach((r,i)=>{if(i&&String(r[3]).toLowerCase()===String(row[3]).toLowerCase()){sheet.getRange(i+1,5).setValue('unsubscribed');sheet.getRange(i+1,9).setValue(new Date().toISOString());}});
     }
-    return HtmlService.createHtmlOutput(p.action==='confirm'?'Подписка подтверждена. Спасибо!':'Вы отписались от писем Елены.');
+    SpreadsheetApp.flush();
+    return p.action==='confirm'?confirmationPage_():HtmlService.createHtmlOutput('Вы отписались от писем Елены.');
   }finally{lock.releaseLock();}
 }

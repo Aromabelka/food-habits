@@ -47,7 +47,7 @@ test('mail failures and quota limits still preserve contacts without claiming em
   assert.equal(f.context.requestSubscription(f.payload).status,'saved_pending');
  }
 });
-test('confirmation requires signed POST; unsubscribe cancels all matching contacts',()=>{
+test('signed confirmation and POST unsubscribe cancel all matching contacts',()=>{
  const f=fixture();f.context.requestSubscription(f.payload);
  const id=f.payload.id,token=f.context.sign_('confirm:'+id);
  assert.ok(f.context.doPost({parameter:{action:'confirm',id,token:'fake'}}).text.includes('недействительна'));
@@ -62,4 +62,21 @@ test('new opt-in never silently restores an unsubscribed contact',()=>{
 test('editor initialization is restricted to the intended owner',()=>{
  const f=fixture();f.context.Session={getActiveUser:()=>({getEmail:()=>''})};assert.throws(()=>f.context.initializeProject());
  f.context.Session={getActiveUser:()=>({getEmail:()=> 'pastushenkoy@gmail.com'})};assert.doesNotThrow(()=>f.context.initializeProject());
+});
+
+test('GET confirms immediately and repeated visits preserve the confirmation date',()=>{
+ const f=fixture();f.context.requestSubscription(f.payload);
+ const parameter={action:'confirm',id:f.payload.id,token:f.context.sign_('confirm:'+f.payload.id)};
+ const page=f.context.doGet({parameter});const row=f.sheets.get('Subscribers').rows[1];
+ assert.equal(row[4],'confirmed');assert.ok(row[7]);assert.match(page.text,/Спасибо, вы подписаны/);assert.ok(!page.text.includes('<form'));
+ row[7]='2026-11-01T00:00:00.000Z';row[1]='2020-01-01T00:00:00Z';
+ assert.match(f.context.doGet({parameter}).text,/Спасибо, вы подписаны/);assert.equal(row[7],'2026-11-01T00:00:00.000Z');
+});
+test('GET rejects invalid or expired links and cannot restore an unsubscribe',()=>{
+ for(const mode of ['invalid','expired','unsubscribed']){
+  const f=fixture();f.context.requestSubscription(f.payload);const row=f.sheets.get('Subscribers').rows[1];
+  const parameter={action:'confirm',id:f.payload.id,token:f.context.sign_('confirm:'+f.payload.id)};
+  if(mode==='invalid')parameter.token='bad';if(mode==='expired')row[1]='2020-01-01T00:00:00Z';if(mode==='unsubscribed')row[4]='unsubscribed';
+  assert.ok(!f.context.doGet({parameter}).text.includes('Спасибо, вы подписаны'));assert.notEqual(row[4],'confirmed');assert.equal(row[7],'');
+ }
 });
