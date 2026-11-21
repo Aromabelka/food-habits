@@ -82,6 +82,27 @@ function resultPage(){
    }catch(error){status.className='error';status.textContent=error.message;button.disabled=false;button.textContent='Попробовать ещё раз';}
    finally{busy=false;}
  };
- document.getElementById('name').oninput=event=>event.target.setCustomValidity('');
+ // Native validation bubbles otherwise follow the browser's language, not lang=ru.
+ const subscriptionForm=document.getElementById('email-form');
+ function localizeValidation(input){
+   input.setCustomValidity('');
+   let message='';
+   if(input.id==='consent'&&!input.checked)message='Чтобы подписаться, подтвердите согласие на получение писем.';
+   else if(input.id==='name'){
+     if(!input.value.trim())message='Введите ваше имя.';
+     else if(Array.from(input.value.trim()).length>80)message='Имя должно содержать не больше 80 символов.';
+   }else if(input.id==='email'){
+     if(!input.value.trim())message='Введите ваш email.';
+     else if(input.validity.typeMismatch||! /^[^\s@<>]+@[^\s@<>.]+(?:\.[^\s@<>.]+)+$/.test(input.value.trim()))message='Введите корректный email, например name@example.com.';
+     else if(input.value.trim().length>254)message='Email должен содержать не больше 254 символов.';
+   }
+   input.setCustomValidity(message);
+ }
+ subscriptionForm.querySelectorAll('input').forEach(input=>{
+   localizeValidation(input);
+   input.addEventListener('input',()=>localizeValidation(input));
+   input.addEventListener('change',()=>localizeValidation(input));
+   input.addEventListener('invalid',()=>localizeValidation(input));
+ });
 }
 intro();connect();
