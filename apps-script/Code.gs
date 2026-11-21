@@ -49,22 +49,15 @@ function requestSubscription(payload){
   const lock=LockService.getScriptLock();lock.waitLock(10000);
   try {
     setup_();const sheet=book_().getSheetByName('Subscribers');const rows=sheet.getDataRange().getValues().slice(1);
-    const duplicate=rows.find(r=>r[0]===payload.id);
-    if(duplicate){
-      if(decodeCell_(duplicate[3])!==contact.email||decodeCell_(duplicate[2])!==contact.name)throw new Error('Запрос уже сохранён. Обновите страницу для нового запроса.');
-      return receipt_(duplicate[9]);
-    }
-    const previous=rows.filter(r=>decodeCell_(r[3]).toLowerCase()===contact.email.toLowerCase());
-    const recent=previous.find(r=>Date.now()-Date.parse(r[1])<86400000);
-    // Always save an explicit opt-in. Do not automatically re-activate unsubscribed contacts.
-    const confirmed=previous.some(r=>r[4]==='confirmed')&&!previous.some(r=>r[4]==='unsubscribed');
+    const emailKey=contact.email.toLowerCase();
+    // Hold the script lock across lookup and insertion so concurrent requests cannot duplicate an email.
+    if(rows.some(r=>decodeCell_(r[3]).trim().toLowerCase()===emailKey))return {status:'already_exists'};
+    if(rows.some(r=>r[0]===payload.id))throw new Error('Запрос уже сохранён. Обновите страницу для нового запроса.');
     const daily=rows.filter(r=>Date.now()-Date.parse(r[1])<86400000&&r[9]!=='not_sent').length;
-    const canSend=!confirmed&&!recent&&daily<50&&MailApp.getRemainingDailyQuota()>0;
+    const canSend=daily<50&&MailApp.getRemainingDailyQuota()>0;
     const now=new Date().toISOString();
-    const status=confirmed?'confirmed':'pending';
-    sheet.appendRow([payload.id,now,safeCell_(contact.name),safeCell_(contact.email),status,CONSENT_VERSION,CONSENT_TEXT,confirmed?now:'','','not_sent',JSON.stringify(answers),JSON.stringify(result)]);
+    sheet.appendRow([payload.id,now,safeCell_(contact.name),safeCell_(contact.email),'pending',CONSENT_VERSION,CONSENT_TEXT,'','','not_sent',JSON.stringify(answers),JSON.stringify(result)]);
     const row=sheet.getLastRow();SpreadsheetApp.flush();
-    if(confirmed)return {status:'already_confirmed'};
     if(!canSend)return receipt_('not_sent');
     const base=ScriptApp.getService().getUrl();
     const confirm=base+'?action=confirm&id='+payload.id+'&token='+encodeURIComponent(sign_('confirm:'+payload.id));

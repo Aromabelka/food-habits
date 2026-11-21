@@ -76,7 +76,7 @@ function resultPage(){
    busy=true;button.disabled=true;button.textContent='Сохраняем…';status.textContent='';
    try{
      const response=await rpc('requestSubscription',{id:requestId,version:QUESTIONNAIRE_VERSION,answers,name,email:document.getElementById('email').value,consent:document.getElementById('consent').checked,consent_version:CONSENT_VERSION});
-     const messages={confirmation_sent:'Проверьте почту: мы отправили письмо для подтверждения подписки.',saved_pending:'Имя и email сохранены. Отправку письма подтверждения пока не удалось подтвердить. Если письмо придёт, перейдите по ссылке; до подтверждения адрес не включается в рассылку.',already_confirmed:'Вы уже подписаны на письма Елены. Спасибо!'};
+     const messages={confirmation_sent:'Проверьте почту: мы отправили письмо для подтверждения подписки.',saved_pending:'Имя и email сохранены. Отправку письма подтверждения пока не удалось подтвердить. Если письмо придёт, перейдите по ссылке; до подтверждения адрес не включается в рассылку.',already_exists:'Этот email уже есть в списке. Повторная заявка не добавлена.',already_confirmed:'Вы уже подписаны на письма Елены. Спасибо!'};
      if(!messages[response.status])throw new Error('Не удалось подтвердить сохранение. Попробуйте ещё раз.');
      form.innerHTML=`<p class="success" role="status">${messages[response.status]}</p>`;
    }catch(error){status.className='error';status.textContent=error.message;button.disabled=false;button.textContent='Попробовать ещё раз';}

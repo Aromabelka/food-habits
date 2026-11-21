@@ -44,7 +44,7 @@ test('mail failures and quota limits still preserve contacts without claiming em
  for(const failure of ['quota','send']){
   const f=fixture();if(failure==='quota')f.context.MailApp.getRemainingDailyQuota=()=>0;else f.context.MailApp.sendEmail=()=>{throw new Error('timeout');};
   assert.equal(f.context.requestSubscription(f.payload).status,'saved_pending');assert.equal(f.sheets.get('Subscribers').getLastRow(),2);
-  assert.equal(f.context.requestSubscription(f.payload).status,'saved_pending');
+  assert.equal(f.context.requestSubscription(f.payload).status,'already_exists');
  }
 });
 test('signed confirmation and POST unsubscribe cancel all matching contacts',()=>{
@@ -55,9 +55,20 @@ test('signed confirmation and POST unsubscribe cancel all matching contacts',()=
  f.context.doPost({parameter:{action:'unsubscribe',id,token:f.context.sign_('unsubscribe:'+id)}});assert.equal(f.sheets.get('Subscribers').rows[1][4],'unsubscribed');
  f.context.doPost({parameter:{action:'confirm',id,token}});assert.equal(f.sheets.get('Subscribers').rows[1][4],'unsubscribed');
 });
-test('new opt-in never silently restores an unsubscribed contact',()=>{
- const f=fixture();f.context.requestSubscription(f.payload);f.sheets.get('Subscribers').rows[1][4]='unsubscribed';
- f.context.requestSubscription({...f.payload,id:randomUUID()});assert.equal(f.sheets.get('Subscribers').rows[2][4],'pending');assert.equal(f.mail.length,1);
+test('existing emails never create rows, resend mail or change any existing status',()=>{
+ for(const status of ['pending','confirmed','unsubscribed']){
+  const f=fixture();f.context.requestSubscription(f.payload);
+  const rows=f.sheets.get('Subscribers').rows;rows[1][4]=status;
+  const before=JSON.stringify(rows);
+  const response=f.context.requestSubscription({...f.payload,id:randomUUID(),name:'Другое имя',email:'  IRA+QUIZ@example.com  '});
+  assert.equal(response.status,'already_exists');assert.equal(JSON.stringify(rows),before);assert.equal(f.mail.length,1);
+ }
+});
+test('distinct plus addresses are not merged; request IDs cannot be reused for another email',()=>{
+ const f=fixture();f.context.requestSubscription(f.payload);
+ assert.throws(()=>f.context.requestSubscription({...f.payload,email:'other@example.com'}));
+ f.context.requestSubscription({...f.payload,id:randomUUID(),email:'Ira+another@example.com'});
+ assert.equal(f.sheets.get('Subscribers').getLastRow(),3);
 });
 test('editor initialization is restricted to the intended owner',()=>{
  const f=fixture();f.context.Session={getActiveUser:()=>({getEmail:()=>''})};assert.throws(()=>f.context.initializeProject());
