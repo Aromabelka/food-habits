@@ -91,3 +91,14 @@ test('GET rejects invalid or expired links and cannot restore an unsubscribe',()
   assert.ok(!f.context.doGet({parameter}).text.includes('Спасибо, вы подписаны'));assert.notEqual(row[4],'confirmed');assert.equal(row[7],'');
  }
 });
+test('newsletter subscription works without questionnaire and does not invent a result',()=>{
+ const f=fixture();const {answers,...payload}=f.payload;
+ assert.equal(f.context.requestSubscription({...payload,source:'newsletter'}).status,'confirmation_sent');
+ const row=f.sheets.get('Subscribers').rows[1];assert.equal(row[2],'Ирина');assert.equal(row[4],'pending');assert.equal(row[10],'');assert.equal(row[11],'');
+ assert.equal(f.context.requestSubscription({...f.payload,id:randomUUID()}).status,'already_exists');assert.equal(f.mail.length,1);
+});
+test('newsletter flow still requires consent and rejects supplied answers or unknown source',()=>{
+ for(const change of [{source:'newsletter',answers:undefined,consent:false},{source:'newsletter'},{source:'other'},{source:'quiz',answers:undefined}]){
+  const f=fixture();assert.throws(()=>f.context.requestSubscription({...f.payload,...change}));assert.equal(f.sheets.get('Subscribers').getLastRow(),1);
+ }
+});

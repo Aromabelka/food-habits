@@ -38,11 +38,11 @@ function connect(){
   if(native){rpc('getSurvey').then(value=>survey=value).catch(()=>{});return;}
   if(!APP_CONFIG.backendUrl)return;
   const frame=document.createElement('iframe');frame.hidden=true;frame.title='Сервис подписки';frame.src=APP_CONFIG.backendUrl+'?bridge=1&channel='+bridgeChannel;document.body.append(frame);
-  setTimeout(()=>{if(!bridgeReady){bridgeUnavailable=true;const status=document.getElementById('connection');if(status)status.textContent='Сервис подписки сейчас недоступен. Попробуйте позже — ваша рекомендация остаётся на экране.';}},15000);
+  setTimeout(()=>{if(!bridgeReady){bridgeUnavailable=true;const status=document.getElementById('connection');if(status)status.textContent='Сервис подписки сейчас недоступен. Попробуйте позже.';}},15000);
 }
 function focusPage(){root.focus();window.scrollTo({top:0,behavior:'instant'});}
 function intro(){
- root.innerHTML=`<section class="intro"><div class="intro-copy"><div class="eyebrow">Пищевые привычки · Елена Вилиткевич</div><h1>С какой<br><em>привычки</em><br>начать?</h1><p>Несколько коротких вопросов помогут присмотреться к вашему питанию и выбрать один небольшой шаг на ближайшую неделю.</p><p>Вспомните последние 7 дней и выбирайте то, что ближе к вашей обычной жизни. Здесь нет правильных или неправильных ответов.</p><button class="button" id="start">Начать</button><div class="facts"><span>7–8 вопросов</span><span>2–3 минуты</span><span>Без регистрации</span></div></div><div class="art" role="img" aria-label="Иллюстрация тарелки с овощами и крупой"><div class="plate"><div class="food leaf"></div><div class="food tomato"></div><div class="food grain"></div></div><div class="art-label top">Без строгих правил</div><div class="art-label">Один небольшой шаг</div><div class="art-caption">Больше внимания к себе</div></div></section><p class="disclaimer">Анкета для взрослых помогает выбрать привычку и не заменяет индивидуальную оценку питания.</p>`;
+ root.innerHTML=`<section class="intro"><div class="intro-copy"><div class="eyebrow">Пищевые привычки · Елена Вилиткевич</div><h1>С какой<br><em>привычки</em><br>начать?</h1><p>Несколько коротких вопросов помогут присмотреться к вашему питанию и выбрать один небольшой шаг на ближайшую неделю.</p><p>Вспомните последние 7 дней и выбирайте то, что ближе к вашей обычной жизни. Здесь нет правильных или неправильных ответов.</p><div class="intro-actions"><button class="button" id="start">Начать анкету</button><a class="button secondary" href="#subscribe">Подписаться на письма Елены</a></div><div class="facts"><span>7–8 вопросов</span><span>2–3 минуты</span><span>Без регистрации</span></div></div><div class="art" role="img" aria-label="Иллюстрация тарелки с овощами и крупой"><div class="plate"><div class="food leaf"></div><div class="food tomato"></div><div class="food grain"></div></div><div class="art-label top">Без строгих правил</div><div class="art-label">Один небольшой шаг</div><div class="art-caption">Больше внимания к себе</div></div></section><p class="disclaimer">Анкета для взрослых помогает выбрать привычку и не заменяет индивидуальную оценку питания.</p>`;
  document.getElementById('start').onclick=()=>{step=0;question();focusPage();};
 }
 function question(){
@@ -66,16 +66,27 @@ function question(){
  };
 }
 function resultPage(){
- root.innerHTML=`<div class="result-wrap"><section class="result-top"><div class="result-badge" aria-hidden="true">✓</div><div class="eyebrow" style="justify-content:center">С этого можно начать</div><h1>${escapeHtml(result.title)}</h1><p>${escapeHtml(result.description)}</p></section><section class="result-card"><h2>Ваш шаг на ближайшую неделю</h2><p>${escapeHtml(result.action)}</p>${result.note?`<p class="hint">${escapeHtml(result.note)}</p>`:''}</section><section class="email-card"><h2>Хотите получать письма от Елены?</h2><p>Оставьте имя и email — Елена Вилиткевич будет делиться советами по питанию и новостями. Отписаться можно в любой момент.</p><form id="email-form"><label class="email-label" for="name">Ваше имя</label><input class="contact-input" id="name" name="name" maxlength="80" autocomplete="given-name" required><label class="email-label" for="email">Ваш email</label><input class="contact-input" id="email" name="email" type="email" maxlength="254" placeholder="you@example.com" autocomplete="email" required><label class="consent"><input id="consent" type="checkbox" required><span>${escapeHtml(CONSENT_TEXT)}</span></label><details class="privacy"><summary>Как используются данные</summary><p>При запросе подписки имя, email, ответы анкеты, результат и ваше согласие сохраняются в закрытой Google-таблице проекта Елены Вилиткевич. Адрес используется для подтверждения подписки и, после подтверждения, для писем Елены. Ответы без заявки остаются только в памяти этой страницы. Ссылка для отмены заявки и отписки есть в письме подтверждения.</p></details>${APP_CONFIG.privacyUrl?`<p><a href="${escapeHtml(APP_CONFIG.privacyUrl)}" target="_blank" rel="noopener">Политика конфиденциальности</a></p>`:''}<p id="connection" role="status">${connected()?'':bridgeUnavailable?'Сервис подписки сейчас недоступен. Попробуйте позже.':'Подключаем сервис подписки…'}</p><button class="button" type="submit" id="subscribe" ${connected()?'':'disabled'}>Подписаться</button><div id="email-status" role="status" aria-live="polite"></div></form></section><p class="disclaimer">Анкета помогает выбрать привычку и не заменяет индивидуальную оценку питания. Результат доступен без подписки.</p><button class="text-button restart" id="restart">Пройти ещё раз</button></div>`;
- if(!native&&!APP_CONFIG.backendUrl)document.getElementById('connection').textContent='Подписка пока не подключена. Рекомендация уже доступна полностью.';
+ root.innerHTML=`<div class="result-wrap"><section class="result-top"><div class="result-badge" aria-hidden="true">✓</div><div class="eyebrow" style="justify-content:center">С этого можно начать</div><h1>${escapeHtml(result.title)}</h1><p>${escapeHtml(result.description)}</p></section><section class="result-card"><h2>Ваш шаг на ближайшую неделю</h2><p>${escapeHtml(result.action)}</p>${result.note?`<p class="hint">${escapeHtml(result.note)}</p>`:''}</section>${subscriptionCard()}<p class="disclaimer">Анкета помогает выбрать привычку и не заменяет индивидуальную оценку питания. Результат доступен без подписки.</p><button class="text-button restart" id="restart">Пройти ещё раз</button></div>`;
+
  document.getElementById('restart').onclick=()=>{if(busy)return;answers={};result=null;requestId=crypto.randomUUID();intro();focusPage();};
+ bindSubscription('quiz');
+}
+function subscriptionCard(standalone=false){
+ return `<section class="email-card"><${standalone?'h1':'h2'}>Хотите получать письма от Елены?</${standalone?'h1':'h2'}><p>Оставьте имя и email — Елена Вилиткевич будет делиться советами по питанию и новостями. Отписаться можно в любой момент.</p><form id="email-form"><label class="email-label" for="name">Ваше имя</label><input class="contact-input" id="name" name="name" maxlength="80" autocomplete="given-name" required><label class="email-label" for="email">Ваш email</label><input class="contact-input" id="email" name="email" type="email" maxlength="254" placeholder="you@example.com" autocomplete="email" required><label class="consent"><input id="consent" type="checkbox" required><span>${escapeHtml(CONSENT_TEXT)}</span></label><details class="privacy"><summary>Как используются данные</summary><p>${standalone?'При запросе подписки имя, email и ваше согласие сохраняются':'При запросе подписки имя, email, ответы анкеты, результат и ваше согласие сохраняются'} в закрытой Google-таблице проекта Елены Вилиткевич. Адрес используется для подтверждения подписки и, после подтверждения, для писем Елены. Ответы без заявки остаются только в памяти этой страницы. Ссылка для отмены заявки и отписки есть в письме подтверждения.</p></details>${APP_CONFIG.privacyUrl?`<p><a href="${escapeHtml(APP_CONFIG.privacyUrl)}" target="_blank" rel="noopener">Политика конфиденциальности</a></p>`:''}<p id="connection" role="status">${connected()?'':bridgeUnavailable?'Сервис подписки сейчас недоступен. Попробуйте позже.':'Подключаем сервис подписки…'}</p><button class="button" type="submit" id="subscribe" ${connected()?'':'disabled'}>Подписаться</button><div id="email-status" role="status" aria-live="polite"></div></form></section>`;
+}
+function subscriptionPage(){
+ root.innerHTML=`<div class="result-wrap standalone-subscription"><p class="eyebrow">Письма Елены Вилиткевич</p><p>Можно подписаться без прохождения анкеты.</p>${subscriptionCard(true)}<a class="text-button restart" href="#">На главную</a></div>`;
+ bindSubscription('newsletter');
+}
+function bindSubscription(source){
+ if(!native&&!APP_CONFIG.backendUrl)document.getElementById('connection').textContent='Подписка пока не подключена. Попробуйте позже.';
  document.getElementById('email-form').onsubmit=async event=>{
    event.preventDefault();if(busy)return;
    const form=event.currentTarget,status=document.getElementById('email-status'),button=document.getElementById('subscribe');
    const name=document.getElementById('name').value.trim();if(!name){document.getElementById('name').setCustomValidity('Введите имя.');document.getElementById('name').reportValidity();return;}
    busy=true;button.disabled=true;button.textContent='Сохраняем…';status.textContent='';
    try{
-     const response=await rpc('requestSubscription',{id:requestId,version:QUESTIONNAIRE_VERSION,answers,name,email:document.getElementById('email').value,consent:document.getElementById('consent').checked,consent_version:CONSENT_VERSION});
+     const response=await rpc('requestSubscription',{id:requestId,version:QUESTIONNAIRE_VERSION,source,...(source==='quiz'?{answers}:{}),name,email:document.getElementById('email').value,consent:document.getElementById('consent').checked,consent_version:CONSENT_VERSION});
      const messages={confirmation_sent:'Проверьте почту: мы отправили письмо для подтверждения подписки.',saved_pending:'Имя и email сохранены. Отправку письма подтверждения пока не удалось подтвердить. Если письмо придёт, перейдите по ссылке; до подтверждения адрес не включается в рассылку.',already_exists:'Этот email уже есть в списке. Повторная заявка не добавлена.',already_confirmed:'Вы уже подписаны на письма Елены. Спасибо!'};
      if(!messages[response.status])throw new Error('Не удалось подтвердить сохранение. Попробуйте ещё раз.');
      form.innerHTML=`<p class="success" role="status">${messages[response.status]}</p>`;
@@ -105,4 +116,9 @@ function resultPage(){
    input.addEventListener('invalid',()=>localizeValidation(input));
  });
 }
-intro();connect();
+function route(){
+ if(location.hash==='#subscribe'){requestId=crypto.randomUUID();subscriptionPage();}else intro();
+ focusPage();
+}
+window.addEventListener('hashchange',route);
+route();connect();

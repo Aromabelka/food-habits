@@ -45,7 +45,11 @@ function normalizeContact_(payload){
 function requestSubscription(payload){
   const contact=normalizeContact_(payload);
   if(!/^[0-9a-f-]{36}$/i.test(payload.id||'')||payload.version!==QUESTIONNAIRE_VERSION||JSON.stringify(payload).length>15000)throw new Error('Обновите страницу и попробуйте снова.');
-  const answers=validateAnswers(payload.answers),result=evaluate(answers);
+  const source=payload.source||'quiz';
+  if(!['quiz','newsletter'].includes(source))throw new Error('Неизвестный источник подписки.');
+  if(source==='newsletter'&&payload.answers!=null)throw new Error('Подписка без анкеты не должна содержать ответы.');
+  const answers=source==='quiz'?validateAnswers(payload.answers):null;
+  const result=answers?evaluate(answers):null;
   const lock=LockService.getScriptLock();lock.waitLock(10000);
   try {
     setup_();const sheet=book_().getSheetByName('Subscribers');const rows=sheet.getDataRange().getValues().slice(1);
@@ -56,7 +60,7 @@ function requestSubscription(payload){
     const daily=rows.filter(r=>Date.now()-Date.parse(r[1])<86400000&&r[9]!=='not_sent').length;
     const canSend=daily<50&&MailApp.getRemainingDailyQuota()>0;
     const now=new Date().toISOString();
-    sheet.appendRow([payload.id,now,safeCell_(contact.name),safeCell_(contact.email),'pending',CONSENT_VERSION,CONSENT_TEXT,'','','not_sent',JSON.stringify(answers),JSON.stringify(result)]);
+    sheet.appendRow([payload.id,now,safeCell_(contact.name),safeCell_(contact.email),'pending',CONSENT_VERSION,CONSENT_TEXT,'','','not_sent',answers?JSON.stringify(answers):'',result?JSON.stringify(result):'']);
     const row=sheet.getLastRow();SpreadsheetApp.flush();
     if(!canSend)return receipt_('not_sent');
     const base=ScriptApp.getService().getUrl();
