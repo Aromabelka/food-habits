@@ -1,5 +1,5 @@
 <!doctype html><html><body><script>
-const channel = <?= JSON.stringify(channel) ?>;
+const channel = <?!= JSON.stringify(channel) ?>;
 const allowed = 'https://aromabelka.github.io';
 window.addEventListener('message', event => {
   if(event.origin !== allowed || event.source !== window.top) return;
