@@ -30,11 +30,11 @@ npm run check
 
 ## Бэкенд Google Apps Script
 
-Проект: https://script.google.com/d/1GOPEywmWh7qF3DRgQe0nC8E8nRhJRbmyElfIsSSU4XNsfF7UZ2iqUdma/edit
+Проект: https://script.google.com/d/1PMsFKM0Wy4F2dYwDzJozmjtbGDyT9duficJVi-5CGkHBMFHZIG7oTGum/edit
 
 База: https://docs.google.com/spreadsheets/d/18UyMYLDH8G07v3bw1kXqEsq-uOS3tBursErZpWcYyx8/edit
 
-Deployment ID: `AKfycbxDPaXz-Vb_gj-3r8kmjPQcHQVtxSoVU47BMCUGq1J2q9TbW_vUTuxTgK9TMPruydXC`.
+Deployment ID: `AKfycbwAR39IYNk3HTSyArhWhlRk7lXO5HOH7-xDHyqoAOMXw2-4Tx9usrJZI5wZUm95kjTofg`.
 
 Первый запуск должен выполнить владелец Google-проекта:
 
@@ -49,11 +49,11 @@ Deployment ID: `AKfycbxDPaXz-Vb_gj-3r8kmjPQcHQVtxSoVU47BMCUGq1J2q9TbW_vUTuxTgK9T
 
 ```sh
 npm run check
-clasp push --force
-clasp deploy --deploymentId AKfycbxDPaXz-Vb_gj-3r8kmjPQcHQVtxSoVU47BMCUGq1J2q9TbW_vUTuxTgK9TMPruydXC --description 'Quiz update'
+clasp -u pastushenkoy@gmail.com push --force
+clasp -u pastushenkoy@gmail.com deploy --deploymentId AKfycbwAR39IYNk3HTSyArhWhlRk7lXO5HOH7-xDHyqoAOMXw2-4Tx9usrJZI5wZUm95kjTofg --description 'Quiz update'
 ```
 
-На другой машине скопировать `.clasp.example.json` в `.clasp.json`, выполнить `clasp login`. Авторизационные файлы не коммитятся.
+На другой машине скопировать `.clasp.example.json` в `.clasp.json`, выполнить `clasp -u pastushenkoy@gmail.com login`. Авторизационные файлы не коммитятся.
 
 ### Таблицы
 

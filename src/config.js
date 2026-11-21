@@ -1,2 +1,2 @@
 // Public configuration only. Never put credentials here.
-const APP_CONFIG = { backendUrl: 'https://script.google.com/macros/s/AKfycbxDPaXz-Vb_gj-3r8kmjPQcHQVtxSoVU47BMCUGq1J2q9TbW_vUTuxTgK9TMPruydXC/exec', privacyUrl: 'https://aromabelka.github.io/food-habits/privacy.html' };
+const APP_CONFIG = { backendUrl: 'https://script.google.com/macros/s/AKfycbwAR39IYNk3HTSyArhWhlRk7lXO5HOH7-xDHyqoAOMXw2-4Tx9usrJZI5wZUm95kjTofg/exec', privacyUrl: 'https://aromabelka.github.io/food-habits/privacy.html' };

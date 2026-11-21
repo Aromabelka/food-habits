@@ -75,7 +75,7 @@ function doGet(e){
   if(p.action==='confirm'||p.action==='unsubscribe'){
     const valid=/^[0-9a-f-]{36}$/i.test(p.id||'')&&p.token===sign_(p.action+':'+p.id);
     const title=p.action==='confirm'?'Подтвердить подписку':'Отписаться от писем';
-    return HtmlService.createHtmlOutput(valid?'<html lang="ru"><meta name="viewport" content="width=device-width"><body style="font:18px sans-serif;padding:40px"><h1>'+title+'</h1><form method="post" action="'+escape_(ScriptApp.getService().getUrl())+'">'+['action','id','token'].map(k=>'<input type="hidden" name="'+k+'" value="'+escape_(p[k])+'">').join('')+'<button style="padding:16px">'+title+'</button></form></body></html>':'Ссылка недействительна.');
+    return HtmlService.createHtmlOutput(valid?'<html lang="ru"><meta name="viewport" content="width=device-width"><body style="font:18px sans-serif;padding:40px"><h1>'+title+'</h1><form method="post" target="_top" action="'+escape_(ScriptApp.getService().getUrl())+'">'+['action','id','token'].map(k=>'<input type="hidden" name="'+k+'" value="'+escape_(p[k])+'">').join('')+'<button style="padding:16px">'+title+'</button></form></body></html>':'Ссылка недействительна.');
   }
   if(p.bridge==='1'){
     const template=HtmlService.createTemplateFromFile('Bridge');template.channel=/^[a-f0-9-]{36}$/i.test(p.channel||'')?p.channel:'';
