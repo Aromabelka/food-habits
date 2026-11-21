@@ -1,3 +1,11 @@
+// Select initializeProject in the editor and click Run.
+function initializeProject() {
+  if (Session.getActiveUser().getEmail() !== 'pastushenkoy@gmail.com') throw new Error('Запустите функцию в редакторе под pastushenkoy@gmail.com.');
+  const lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+  try { setup_(); } finally { lock.releaseLock(); }
+}
+
 const SPREADSHEET_ID_ = '18UyMYLDH8G07v3bw1kXqEsq-uOS3tBursErZpWcYyx8';
 const CONTACT_HEADERS_ = ['request_id','requested_at','name','email','marketing_status','consent_text_version','consent_text','confirmed_at','unsubscribed_at','mail_status','answers_json','result_json'];
 function book_(){return SpreadsheetApp.openById(SPREADSHEET_ID_);}

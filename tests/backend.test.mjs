@@ -59,3 +59,7 @@ test('new opt-in never silently restores an unsubscribed contact',()=>{
  const f=fixture();f.context.requestSubscription(f.payload);f.sheets.get('Subscribers').rows[1][4]='unsubscribed';
  f.context.requestSubscription({...f.payload,id:randomUUID()});assert.equal(f.sheets.get('Subscribers').rows[2][4],'pending');assert.equal(f.mail.length,1);
 });
+test('editor initialization is restricted to the intended owner',()=>{
+ const f=fixture();f.context.Session={getActiveUser:()=>({getEmail:()=>''})};assert.throws(()=>f.context.initializeProject());
+ f.context.Session={getActiveUser:()=>({getEmail:()=> 'pastushenkoy@gmail.com'})};assert.doesNotThrow(()=>f.context.initializeProject());
+});

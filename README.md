@@ -38,7 +38,7 @@ Deployment ID: `AKfycbwAR39IYNk3HTSyArhWhlRk7lXO5HOH7-xDHyqoAOMXw2-4Tx9usrJZI5wZ
 
 Первый запуск должен выполнить владелец Google-проекта:
 
-1. В редакторе выбрать `setup_`, нажать «Выполнить», предоставить доступ к Google Sheets и отправке писем.
+1. В редакторе выбрать `initializeProject`, нажать «Выполнить», предоставить доступ к Google Sheets и отправке писем.
 2. Deploy → Manage deployments: Web app, Execute as **Me**, Who has access **Anyone**. Аккаунт исполнителя должен иметь право редактирования указанной таблицы.
 3. Если Google создаёт новый deployment, обновить `backendUrl` в `src/config.js`.
 4. Проверить сайт в приватном окне и запросить подписку на свой адрес. Должна появиться строка `Subscribers`, затем письмо. Только после перехода по ссылке и нажатия кнопки статус становится `confirmed`.
