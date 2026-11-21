@@ -7,3 +7,6 @@ await Promise.all([writeFile(new URL('../dist/index.html',import.meta.url),page)
 console.log('Built local preview: dist/index.html; Apps Script project: dist/apps-script');
 
 await writeFile(new URL('../dist/privacy.html',import.meta.url),await read('src/privacy.html'));
+// Keep branch-based Pages compatible while repository settings still use main:/.
+await writeFile(new URL('../index.html',import.meta.url),page);
+await writeFile(new URL('../privacy.html',import.meta.url),await read('src/privacy.html'));
