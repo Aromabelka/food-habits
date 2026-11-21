@@ -18,39 +18,44 @@ function fixture(){
   }
  }
  const book={getSheetByName:name=>sheets.get(name),insertSheet:name=>{const sheet=new Sheet();sheets.set(name,sheet);return sheet;}};
- const context=vm.createContext({SpreadsheetApp:{openById:()=>book,flush(){}},LockService:{getScriptLock:()=>({waitLock(){},releaseLock(){releases++;}})},PropertiesService:{getScriptProperties:()=>({getProperty:key=>properties.get(key),setProperty:(key,value)=>properties.set(key,value)})},Utilities:{getUuid:randomUUID,base64EncodeWebSafe:bytes=>Buffer.from(bytes).toString('base64url'),computeDigest:(_,value)=>createHash('sha256').update(value).digest(),DigestAlgorithm:{SHA_256:'sha256'},computeHmacSha256Signature:(id,secret)=>createHmac('sha256',secret).update(id).digest()},MailApp:{getRemainingDailyQuota:()=>100,sendEmail:message=>mail.push(message)}});
+ const context=vm.createContext({SpreadsheetApp:{openById:()=>book,flush(){}},LockService:{getScriptLock:()=>({waitLock(){},releaseLock(){releases++;}})},PropertiesService:{getScriptProperties:()=>({getProperty:key=>properties.get(key),setProperty:(key,value)=>properties.set(key,value)})},Utilities:{getUuid:randomUUID,base64EncodeWebSafe:bytes=>Buffer.from(bytes).toString('base64url'),computeDigest:(_,value)=>createHash('sha256').update(value).digest(),DigestAlgorithm:{SHA_256:'sha256'},computeHmacSha256Signature:(id,secret)=>createHmac('sha256',secret).update(id).digest()},ScriptApp:{getService:()=>({getUrl:()=> 'https://script.google.com/macros/s/test/exec'})},HtmlService:{createHtmlOutput:text=>({text})},MailApp:{getRemainingDailyQuota:()=>100,sendEmail:message=>mail.push(message)}});
  vm.runInContext(readFileSync(new URL('../src/survey.js',import.meta.url),'utf8')+'\n'+readFileSync(new URL('../apps-script/Code.gs',import.meta.url),'utf8'),context);
  context.setup_();
  const survey=context.getSurvey();
- const payload={id:randomUUID(),version:survey.version,answers:Object.fromEntries(survey.questions.map(q=>[q.id,[q.options[0].id]]))};
+ const payload={id:randomUUID(),version:survey.version,answers:{Q1:'OFTEN',Q2:'TWO_PLUS',Q3:'OFTEN',Q4:'MANY',Q5:'HIGH',Q6:'RARE',Q7:'SOON'},name:'Ирина',email:'Ira+quiz@EXAMPLE.COM',consent:true,consent_version:'2026-11-21'};
  return {context,sheets,mail,payload,releases:()=>releases};
 }
-test('setup preserves existing data; anonymous submission is idempotent',()=>{
- const f=fixture();f.context.setup_();assert.equal(f.sheets.get('Questions').getLastRow(),7);
- const a=f.context.submitSurvey(f.payload),b=f.context.submitSurvey(f.payload);
- assert.equal(a.token,b.token);assert.equal(a.result.score,100);assert.equal(f.sheets.get('Responses').getLastRow(),2);assert.ok(f.releases()>=4);
+test('stores contact and consent; duplicate request never sends twice',()=>{
+ const f=fixture();assert.equal(f.context.requestSubscription(f.payload).status,'confirmation_sent');
+ f.context.requestSubscription(f.payload);assert.equal(f.mail.length,1);
+ const row=f.sheets.get('Subscribers').rows[1];assert.equal(row[2],'Ирина');assert.equal(row[3],'Ira+quiz@example.com');assert.equal(row[4],'pending');assert.ok(row[6].includes('Елены'));
+ assert.equal(JSON.parse(row[11]).result_mode,'support');
 });
-test('stale survey and modified duplicate rejected without writing',()=>{
- const f=fixture();assert.throws(()=>f.context.submitSurvey({...f.payload,version:'stale'}));assert.equal(f.sheets.get('Responses').getLastRow(),1);
- f.context.submitSurvey(f.payload);assert.throws(()=>f.context.submitSurvey({...f.payload,answers:{}}));
+test('validates consent, name, email, version and answers before writing',()=>{
+ for(const change of [{consent:false},{name:' '},{name:'x'.repeat(81)},{email:'bad'},{version:'1'},{answers:{}},{consent_version:'old'}]){
+  const f=fixture();assert.throws(()=>f.context.requestSubscription({...f.payload,...change}));assert.equal(f.sheets.get('Subscribers').getLastRow(),1);
+ }
 });
-test('email requires consent and valid token; replay sends only once',()=>{
- const f=fixture(),receipt=f.context.submitSurvey(f.payload),request={...receipt,email:'test@example.com',consent:true};
- assert.throws(()=>f.context.sendRecommendations({...request,token:'fake'}));
- assert.throws(()=>f.context.sendRecommendations({...request,consent:false}));
- assert.throws(()=>f.context.sendRecommendations({...request,email:'=formula@example.com'}));
- f.context.sendRecommendations(request);f.context.sendRecommendations(request);assert.equal(f.mail.length,1);assert.equal(f.sheets.get('Responses').rows[1][6],'sent');
+test('protects spreadsheet formulas and recomputes result',()=>{
+ const f=fixture();f.context.requestSubscription({...f.payload,name:'=1+1',result_code:'W'});
+ const row=f.sheets.get('Subscribers').rows[1];assert.equal(row[2],"'=1+1");assert.equal(JSON.parse(row[11]).result_code,'P');
 });
-test('same address cannot consume multiple sends in 24 hours',()=>{
- const f=fixture();const first=f.context.submitSurvey(f.payload);f.context.sendRecommendations({...first,email:'test@example.com',consent:true});
- const second=f.context.submitSurvey({...f.payload,id:randomUUID()});assert.throws(()=>f.context.sendRecommendations({...second,email:'TEST@example.com',consent:true}));assert.equal(f.mail.length,1);
+test('mail failures and quota limits still preserve contacts without claiming email sent',()=>{
+ for(const failure of ['quota','send']){
+  const f=fixture();if(failure==='quota')f.context.MailApp.getRemainingDailyQuota=()=>0;else f.context.MailApp.sendEmail=()=>{throw new Error('timeout');};
+  assert.equal(f.context.requestSubscription(f.payload).status,'saved_pending');assert.equal(f.sheets.get('Subscribers').getLastRow(),2);
+  assert.equal(f.context.requestSubscription(f.payload).status,'saved_pending');
+ }
 });
-test('uncertain email delivery is recorded and never blindly retried',()=>{
- const f=fixture(),receipt=f.context.submitSurvey(f.payload);f.context.MailApp.sendEmail=()=>{throw new Error('connection lost');};
- const request={...receipt,email:'test@example.com',consent:true};assert.throws(()=>f.context.sendRecommendations(request));assert.equal(f.sheets.get('Responses').rows[1][6],'pending');assert.throws(()=>f.context.sendRecommendations(request));
+test('confirmation requires signed POST; unsubscribe cancels all matching contacts',()=>{
+ const f=fixture();f.context.requestSubscription(f.payload);
+ const id=f.payload.id,token=f.context.sign_('confirm:'+id);
+ assert.ok(f.context.doPost({parameter:{action:'confirm',id,token:'fake'}}).text.includes('недействительна'));
+ f.context.doPost({parameter:{action:'confirm',id,token}});assert.equal(f.sheets.get('Subscribers').rows[1][4],'confirmed');
+ f.context.doPost({parameter:{action:'unsubscribe',id,token:f.context.sign_('unsubscribe:'+id)}});assert.equal(f.sheets.get('Subscribers').rows[1][4],'unsubscribed');
+ f.context.doPost({parameter:{action:'confirm',id,token}});assert.equal(f.sheets.get('Subscribers').rows[1][4],'unsubscribed');
 });
-test('expired result and exhausted quota prevent delivery',()=>{
- const f=fixture(),receipt=f.context.submitSurvey(f.payload),request={...receipt,email:'test@example.com',consent:true};
- f.context.MailApp.getRemainingDailyQuota=()=>0;assert.throws(()=>f.context.sendRecommendations(request));
- f.context.MailApp.getRemainingDailyQuota=()=>100;f.sheets.get('Responses').rows[1][1]='2020-01-01T00:00:00Z';assert.throws(()=>f.context.sendRecommendations(request));assert.equal(f.mail.length,0);
+test('new opt-in never silently restores an unsubscribed contact',()=>{
+ const f=fixture();f.context.requestSubscription(f.payload);f.sheets.get('Subscribers').rows[1][4]='unsubscribed';
+ f.context.requestSubscription({...f.payload,id:randomUUID()});assert.equal(f.sheets.get('Subscribers').rows[2][4],'pending');assert.equal(f.mail.length,1);
 });

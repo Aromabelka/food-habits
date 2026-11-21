@@ -28,7 +28,7 @@ jobs:
       - name: Prepare public files
         run: |
           mkdir -p _site
-          cp dist/index.html _site/index.html
+          cp dist/index.html dist/privacy.html _site/
           touch _site/.nojekyll
       - name: Configure Pages
         uses: actions/configure-pages@v5

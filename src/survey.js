@@ -1,74 +1,300 @@
-// Shared by the browser demo and the Apps Script server. No external dependencies.
-const DEMO_SURVEY = {
-  version: 'demo-1',
-  questions: [
-    {id:'rhythm', title:'Как обычно складывается ваш день?', hint:'Подумайте о привычной неделе, а не об идеальном дне.', multiple:false, options:[
-      {id:'planned',label:'Обычно нахожу время спокойно поесть',score:2},
-      {id:'mixed',label:'По-разному: иногда спокойно, иногда на бегу',score:1},
-      {id:'rushed',label:'Часто откладываю еду из-за дел',score:0}]},
-    {id:'choice',title:'Что помогает вам решить, что поесть?',hint:'Можно выбрать несколько вариантов.',multiple:true,options:[
-      {id:'preference',label:'Мои вкусы и то, чего хочется сейчас',score:2},
-      {id:'plan',label:'Продукты дома или небольшой план',score:2},
-      {id:'time',label:'То, что получится найти быстрее всего',score:1},
-      {id:'random',label:'Обычно выбираю в последний момент',score:0}]},
-    {id:'attention',title:'Что чаще сопровождает ваш приём пищи?',hint:'Выберите вариант, который ближе всего к вашей повседневности.',multiple:false,options:[
-      {id:'pause',label:'Перерыв, когда можно переключиться на еду',score:2},
-      {id:'sometimes',label:'Иногда перерыв, иногда телефон или работа',score:1},
-      {id:'screen',label:'Работа, переписка или лента в телефоне',score:0}]},
-    {id:'shopping',title:'Как вы обычно покупаете продукты?',hint:'Здесь нет правильных и неправильных ответов.',multiple:false,options:[
-      {id:'list',label:'Проверяю, что есть дома, и составляю список',score:2},
-      {id:'rough',label:'Примерно представляю, что нужно',score:1},
-      {id:'spontaneous',label:'Покупаю спонтанно, без плана',score:0}]},
-    {id:'support',title:'Что уже помогает вам в повседневной жизни?',hint:'Отметьте всё подходящее или выберите последний вариант.',multiple:true,options:[
-      {id:'easy',label:'Несколько простых любимых блюд',score:2},
-      {id:'break',label:'Время для перерыва в расписании',score:2},
-      {id:'company',label:'Совместные приёмы пищи с близкими',score:2},
-      {id:'none',label:'Пока ищу подходящий мне подход',score:0,exclusive:true}]},
-    {id:'change',title:'Насколько вам подходит ваш текущий ритм?',hint:'Остался последний вопрос.',multiple:false,options:[
-      {id:'comfortable',label:'В целом мне удобно, хочется сохранить этот ритм',score:2},
-      {id:'adjust',label:'Есть несколько вещей, которые хочется изменить',score:1},
-      {id:'start',label:'Хочется начать с простых и понятных шагов',score:0}]}
-  ],
-  results:[
-    {id:'start',min:0,max:39,title:'Начните с одной удобной привычки',description:'Сейчас еда часто подстраивается под дела. Можно поискать один небольшой шаг, который сделает ваш день удобнее.',recommendations:['Выберите один день и заранее решите, когда вам удобно сделать перерыв на еду.','Запишите два простых блюда, которые вам нравятся и которые легко приготовить.','В конце недели отметьте, что получилось удобно, и оставьте только подходящие вам идеи.']},
-    {id:'balance',min:40,max:74,title:'Найдите свой комфортный ритм',description:'У вас уже есть опорные привычки. Небольшие изменения могут помочь сделать повседневный ритм более предсказуемым.',recommendations:['Выберите одну ситуацию, в которой вам чаще всего неудобно организовать еду, и придумайте запасной вариант.','Перед следующей покупкой проверьте продукты дома и составьте короткий список.','Попробуйте один приём пищи без рабочих задач и оцените, нравится ли вам такой перерыв.']},
-    {id:'steady',min:75,max:100,title:'У вас уже есть удобная основа',description:'По вашим ответам, вы нашли несколько способов организовать питание в повседневной жизни. Сохраняйте то, что подходит именно вам.',recommendations:['Запишите, какие привычки делают ваш день проще, чтобы опираться на них в загруженные недели.','Оставьте место для гибкости: план может меняться вместе с вашими обстоятельствами.','Выберите одну новую идею для разнообразия — например, новое блюдо или совместный обед.']}
+const QUESTIONNAIRE_VERSION = "2.1";
+const SCORING_VERSION = "2.1";
+const CONSENT_VERSION = "2026-11-21";
+const CONSENT_TEXT = "Хочу получать от Елены Вилиткевич письма с советами по питанию, новостями и предложениями консультаций и программ. Я могу отписаться в любой момент.";
+const SURVEY = {
+  "version": "2.1",
+  "questions": [
+    {
+      "id": "Q1",
+      "title": "Как часто за последнюю неделю в вашем завтраке было что-то белковое?",
+      "hint": "Например, яйца, творог, скир, рыба, птица, тофу или бобовые как часть блюда. Немного молока в кофе не считаем. Если в отдельные дни пропускаете завтрак, учитывайте первый приём пищи в эти дни",
+      "options": [
+        {
+          "id": "OFTEN",
+          "label": "Почти каждый день — 5–7 дней",
+          "score": 0
+        },
+        {
+          "id": "SOMETIMES",
+          "label": "Иногда — 3–4 дня",
+          "score": 1
+        },
+        {
+          "id": "RARE",
+          "label": "Редко или совсем не было — 0–2 дня",
+          "score": 2
+        },
+        {
+          "id": "NO_BREAKFAST",
+          "label": "Я обычно не завтракаю",
+          "score": null
+        },
+        {
+          "id": "UNKNOWN",
+          "label": "Трудно сказать",
+          "score": null
+        }
+      ]
+    },
+    {
+      "id": "Q1A",
+      "title": "А в первом приёме пищи за день как часто бывает что-то белковое?",
+      "hint": "Неважно, во сколько вы едите. Вспомните те же последние 7 дней",
+      "options": [
+        {
+          "id": "OFTEN",
+          "label": "Почти каждый день — 5–7 дней",
+          "score": 0
+        },
+        {
+          "id": "SOMETIMES",
+          "label": "Иногда — 3–4 дня",
+          "score": 1
+        },
+        {
+          "id": "RARE",
+          "label": "Редко или совсем не было — 0–2 дня",
+          "score": 2
+        },
+        {
+          "id": "UNKNOWN",
+          "label": "Трудно сказать",
+          "score": null
+        }
+      ]
+    },
+    {
+      "id": "Q2",
+      "title": "Сколько порций овощей обычно получается съесть за день?",
+      "hint": "Порция — примерно овощ размером с ваш кулак или две сложенные горстью ладони нарезанных овощей либо салата. Подойдут сырые, приготовленные и замороженные. Картофель здесь не считаем",
+      "options": [
+        {
+          "id": "NONE",
+          "label": "Обычно ни одной",
+          "score": 2
+        },
+        {
+          "id": "ONE",
+          "label": "Обычно одну",
+          "score": 1
+        },
+        {
+          "id": "TWO_PLUS",
+          "label": "Две или больше",
+          "score": 0
+        },
+        {
+          "id": "UNKNOWN",
+          "label": "Трудно сказать",
+          "score": null
+        }
+      ]
+    },
+    {
+      "id": "Q3",
+      "title": "Как часто за последнюю неделю вы ели фрукты или ягоды?",
+      "hint": "Например, целый фрукт или порцию ягод. Сок здесь не считаем",
+      "options": [
+        {
+          "id": "OFTEN",
+          "label": "Почти каждый день — 5–7 дней",
+          "score": 0
+        },
+        {
+          "id": "SOMETIMES",
+          "label": "Иногда — 3–4 дня",
+          "score": 1
+        },
+        {
+          "id": "RARE",
+          "label": "Редко или совсем не было — 0–2 дня",
+          "score": 2
+        },
+        {
+          "id": "UNKNOWN",
+          "label": "Трудно сказать",
+          "score": null
+        }
+      ]
+    },
+    {
+      "id": "Q4",
+      "title": "Сколько разных овощей, фруктов, ягод и видов зелени было в вашем меню за неделю?",
+      "hint": "Яблоко, огурец, морковь, брокколи и петрушка — уже пять. Один продукт считаем один раз, даже если ели его ежедневно. Разные сорта яблок — один продукт. Достаточно примерной оценки",
+      "options": [
+        {
+          "id": "FEW",
+          "label": "0–2 вида",
+          "score": 2
+        },
+        {
+          "id": "SOME",
+          "label": "3–4 вида",
+          "score": 1
+        },
+        {
+          "id": "MANY",
+          "label": "5 видов или больше",
+          "score": 0
+        },
+        {
+          "id": "UNKNOWN",
+          "label": "Трудно сказать",
+          "score": null
+        }
+      ]
+    },
+    {
+      "id": "Q5",
+      "title": "Сколько всего напитков у вас обычно получается выпить за день?",
+      "hint": "Считаем воду, чай, кофе, молоко и другие безалкогольные напитки. Один стакан здесь — 250 мл. Суп в этот вопрос не входит",
+      "options": [
+        {
+          "id": "LOW",
+          "label": "Меньше 1 литра — меньше 4 стаканов",
+          "score": 2
+        },
+        {
+          "id": "MEDIUM",
+          "label": "От 1 до менее 1,5 литра — 4–5 стаканов",
+          "score": 1
+        },
+        {
+          "id": "HIGH",
+          "label": "1,5 литра или больше — от 6 стаканов",
+          "score": 0
+        },
+        {
+          "id": "UNKNOWN",
+          "label": "Трудно сказать",
+          "score": null
+        }
+      ]
+    },
+    {
+      "id": "Q6",
+      "title": "Бывает, что за делами вы забываете попить на несколько часов?",
+      "hint": "Вспомните последнюю неделю",
+      "options": [
+        {
+          "id": "OFTEN",
+          "label": "Почти каждый день — 5–7 дней",
+          "score": 2
+        },
+        {
+          "id": "SOMETIMES",
+          "label": "Иногда — 3–4 дня",
+          "score": 1
+        },
+        {
+          "id": "RARE",
+          "label": "Редко или никогда — 0–2 дня",
+          "score": 0
+        },
+        {
+          "id": "UNKNOWN",
+          "label": "Не замечал(а), трудно сказать",
+          "score": null
+        }
+      ]
+    },
+    {
+      "id": "Q7",
+      "title": "Когда замечаете, что хочется пить, обычно удаётся попить?",
+      "hint": "Выберите наиболее близкий ответ.",
+      "options": [
+        {
+          "id": "SOON",
+          "label": "Да, обычно пью вскоре после этого",
+          "score": 0
+        },
+        {
+          "id": "DELAY_SOMETIMES",
+          "label": "Иногда откладываю, иногда пью сразу",
+          "score": 1
+        },
+        {
+          "id": "DELAY_OFTEN",
+          "label": "Часто откладываю надолго",
+          "score": 2
+        },
+        {
+          "id": "UNKNOWN",
+          "label": "Мне трудно заметить жажду или оценить это",
+          "score": null
+        }
+      ]
+    }
   ]
 };
-function validateSurvey(survey) {
-  if (!survey || !survey.version || !Array.isArray(survey.questions) || !survey.questions.length || !Array.isArray(survey.results)) throw new Error('Анкета ещё не настроена.');
-  const ids = new Set();
-  survey.questions.forEach(q => {
-    if (!q.id || ids.has(q.id) || !q.title || typeof q.multiple !== 'boolean' || !Array.isArray(q.options) || q.options.length < 2) throw new Error('Ошибка настройки вопросов.');
-    ids.add(q.id);
-    const options = new Set();
-    q.options.forEach(o => {
-      if (!o.id || options.has(o.id) || !o.label || !Number.isFinite(o.score) || o.score < 0 || o.score > 2) throw new Error('Ошибка настройки вариантов.');
-      options.add(o.id);
-    });
-  });
-  for(let score=0;score<=100;score++) {
-    const matches=survey.results.filter(r=>Number.isInteger(r.min)&&Number.isInteger(r.max)&&score>=r.min&&score<=r.max);
-    if(matches.length!==1 || !matches[0].title || !matches[0].description || !Array.isArray(matches[0].recommendations) || !matches[0].recommendations.length) throw new Error('Диапазоны результатов должны покрывать 0–100 без пересечений.');
+function activeQuestions(answers, survey = SURVEY) {
+  return survey.questions.filter(q => q.id !== 'Q1A' || answers.Q1 === 'NO_BREAKFAST');
+}
+function validateAnswers(answers, survey = SURVEY) {
+  if (!answers || typeof answers !== 'object' || Array.isArray(answers)) throw new Error('Ответьте на все вопросы.');
+  const questions = activeQuestions(answers, survey);
+  const allowed = new Set(questions.map(q => q.id));
+  for (const key of Object.keys(answers)) {
+    if (!allowed.has(key) && !(key === 'Q1A' && answers[key] === null)) throw new Error('Недопустимый ответ в скрытом вопросе.');
   }
-  return survey;
-}
-function publicSurvey(survey) {
-  validateSurvey(survey);
-  return {version:survey.version, questions:survey.questions.map(q=>({...q,options:q.options.map(({score,...option})=>option)}))};
-}
-function evaluate(survey, answers) {
-  validateSurvey(survey);
-  if(!answers || typeof answers!=='object' || Array.isArray(answers) || Object.keys(answers).length!==survey.questions.length) throw new Error('Ответьте на все вопросы.');
-  let total=0;
-  survey.questions.forEach(q=>{
-    const selected=answers[q.id];
-    if(!Array.isArray(selected)||!selected.length||new Set(selected).size!==selected.length||(!q.multiple&&selected.length!==1)) throw new Error('Проверьте ответы на вопросы.');
-    const options=selected.map(id=>q.options.find(o=>o.id===id));
-    if(options.some(o=>!o)|| (options.length>1&&options.some(o=>o.exclusive))) throw new Error('Недопустимое сочетание ответов.');
-    total+=options.reduce((sum,o)=>sum+o.score,0)/options.length;
+  const normalized = {};
+  questions.forEach(q => {
+    if (!q.options.some(o => o.id === answers[q.id])) throw new Error('Проверьте ответы на все вопросы.');
+    normalized[q.id] = answers[q.id];
   });
-  const score=Math.round(total/(survey.questions.length*2)*100);
-  const result=survey.results.find(r=>score>=r.min&&score<=r.max);
-  return {...result,score};
+  if (!allowed.has('Q1A')) normalized.Q1A = null;
+  return normalized;
+}
+function evaluate(answers, survey = SURVEY) {
+  const a = validateAnswers(answers, survey);
+  const score = id => survey.questions.find(q => q.id === id).options.find(o => o.id === a[id]).score;
+  const first = a.Q1 === 'NO_BREAKFAST';
+  const P = score(first ? 'Q1A' : 'Q1');
+  const plants = ['Q4','Q2','Q3'].map(id => ({id, score:score(id)})).filter(x => x.score !== null);
+  const V = plants.length ? Math.max(...plants.map(x => x.score)) : null;
+  const amount = score('Q5');
+  const W = amount === null ? null : amount === 0 ? 0 : amount === 2 && (score('Q6') === 2 || score('Q7') === 2) ? 2 : 1;
+  const scores = {P,V,W};
+  const candidates = ['P','V','W'].filter(id => scores[id] !== null && scores[id] > 0);
+  const max = candidates.length ? Math.max(...candidates.map(id => scores[id])) : null;
+  const tied = candidates.filter(id => scores[id] === max);
+  const code = tied[0] || 'P';
+  const mode = candidates.length ? 'priority' : P === 0 ? 'support' : 'orientation';
+  const meal = first ? 'первом приёме пищи' : 'завтраке';
+  let title, description, action, observation, note = '';
+  if (code === 'P') {
+    title = first ? 'Немного больше внимания первому приёму пищи' : 'Немного больше внимания завтраку';
+    observation = `P_${mode}_${first ? 'first_meal' : 'breakfast'}_${P}`;
+    if (mode === 'support') {
+      title = 'Сохраните привычку, которая уже есть';
+      description = `По вашим ответам, белковые продукты уже регулярно бывают в ${meal}.`;
+      action = 'На ближайшей неделе попробуйте сохранить эту привычку и понаблюдать за сытостью после еды. Увеличивать порцию белка только из-за результата анкеты не нужно.';
+    } else if (mode === 'orientation') {
+      title = 'Немного больше внимания первому приёму пищи';
+      description = 'По ответам пока трудно уверенно выбрать, чему уделить внимание в первую очередь. Предлагаем начать с первого приёма пищи.';
+      action = 'На ближайшей неделе присмотритесь, есть ли в нём белковый продукт. Если его обычно нет, попробуйте добавить к привычной еде. Понаблюдайте за сытостью и самочувствием после еды.';
+    } else {
+      description = `Судя по ответам, белковые продукты бывают в вашем ${meal} ${P === 2 ? 'нечасто' : 'не каждый день'}.`;
+      action = first
+        ? 'Попробуйте в течение ближайшей недели включать что-то белковое в первый приём пищи. Можно продумывать его заранее, чтобы в нужный момент было проще. Понаблюдайте, как долго сохраняется сытость и когда хочется поесть снова.'
+        : 'Попробуйте в течение ближайшей недели добавлять к привычному завтраку что-то белковое. Можно продумать это с вечера, чтобы утром было проще. Менять весь завтрак не нужно. Понаблюдайте, как вы чувствуете себя до обеда: надолго ли хватает сытости и когда хочется перекусить.';
+    }
+  } else if (code === 'V') {
+    title = 'Больше растительной еды в привычном меню';
+    observation = plants.find(x => x.score === V).id;
+    const texts = {
+      Q2:['Судя по ответам, овощей в вашем обычном дне пока немного.','Попробуйте на ближайшей неделе добавлять одну порцию овощей к привычному обеду. Выберите то, что вам нравится и удобно приготовить.'],
+      Q3:['Судя по ответам, фрукты и ягоды появляются в вашем меню не каждый день.','Попробуйте на ближайшей неделе добавлять фрукт или порцию ягод к одному из привычных приёмов пищи.'],
+      Q4:['Судя по ответам, в вашем меню часто повторяется один и тот же набор овощей, фруктов и зелени.','В ближайшую покупку добавьте один овощ, фрукт или вид зелени, которого давно не было в вашем меню. Попробуйте включить его в знакомое блюдо.']
+    };
+    [description, action] = texts[observation];
+  } else {
+    title = 'Вода под рукой';
+    observation = score('Q6') > 0 ? 'Q6' : score('Q7') > 0 ? 'Q7' : 'Q5';
+    description = {Q6:'Судя по ответам, за делами вы иногда забываете попить.',Q7:'Вы замечаете жажду, но не всегда получается сразу попить.',Q5:'По вашей оценке, в течение дня получается выпить немного напитков.'}[observation];
+    action = 'Попробуйте на ближайшей неделе держать воду там, где проводите больше всего времени. Например, утром поставить стакан или бутылку на стол. Пусть вода будет под рукой, чтобы можно было попить, как только почувствуете жажду.';
+    note = 'Если врач рекомендовал ограничивать жидкость, придерживайтесь его рекомендаций.';
+  }
+  return {questionnaire_version:QUESTIONNAIRE_VERSION,scoring_version:SCORING_VERSION,result_code:code,result_mode:mode,scores,tie_resolved:tied.length > 1,breakfast_context:first?'first_meal':'breakfast',observation_key:observation,title,description,action,note};
 }

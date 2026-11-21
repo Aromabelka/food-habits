@@ -1,0 +1,14 @@
+<!doctype html><html><body><script>
+const channel = <?= JSON.stringify(channel) ?>;
+const allowed = 'https://aromabelka.github.io';
+window.addEventListener('message', event => {
+  if(event.origin !== allowed || event.source !== window.top) return;
+  const message = event.data;
+  if(!message || message.type !== 'food-habits-request' || message.channel !== channel || typeof message.id !== 'string') return;
+  const respond = data => window.top.postMessage({type:'food-habits-response',channel,id:message.id,...data},allowed);
+  const runner=google.script.run.withSuccessHandler(value=>respond({value})).withFailureHandler(error=>respond({error:error.message||'Сервис временно недоступен.'}));
+  if(message.method==='getSurvey')runner.getSurvey();
+  else if(message.method==='requestSubscription')runner.requestSubscription(message.payload);
+});
+window.top.postMessage({type:'food-habits-ready',channel},allowed);
+</script></body></html>
